@@ -759,9 +759,13 @@ static void read_psp_savegames(const char* userPath, list_t *list, int flags)
 	save_entry_t *item;
 	char sfoPath[256];
 
+	LOG("read_psp_savegames: userPath is %s", userPath);
+
 	d = opendir(userPath);
-	if (!d)
+	if (!d){
+		LOG("failed opening %s", userPath);
 		return;
+	}
 
 	while ((dir = readdir(d)) != NULL)
 	{
@@ -854,8 +858,12 @@ list_t * ReadUserList(const char* userPath)
 	code_entry_t *cmd;
 	list_t *list;
 
-	if (dir_exists(userPath) != SUCCESS)
+	LOG("ReadUserList: userPath is %s", userPath);
+
+	if (dir_exists(userPath) != SUCCESS){
+		LOG("ReadUserList: userPath %s does not exist", userPath);
 		return NULL;
+	}
 
 	list = list_alloc();
 
