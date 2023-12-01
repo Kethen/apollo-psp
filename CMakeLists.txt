@@ -102,7 +102,7 @@ target_link_libraries(${PROJECT_NAME}
   xmp
   bz2
   z
-  pspchnnlsv
+  kernelcall
 )
 
 create_pbp_file(
@@ -120,6 +120,7 @@ add_custom_target(createzip
   COMMAND @rm -fr apollo-psp.zip
   COMMAND @curl -L "https://bucanero.github.io/apollo-patches/PSP/apollo-psp-update.zip" > APOLLO/CACHE/appdata.zip
   COMMAND @cp EBOOT.PBP APOLLO/
+  COMMAND @cp kernelcall/kernelcall.prx APOLLO/
   COMMAND @cp ${CMAKE_SOURCE_DIR}/data/fonts/* APOLLO/DATA/
   COMMAND @zip -r apollo-psp.zip APOLLO/
 )

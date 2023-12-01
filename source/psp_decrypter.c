@@ -20,10 +20,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <sys/stat.h>
 #include <apollo.h>
 #include <dbglogger.h>
 #include <pspchnnlsv.h>
+#include <pspsdk.h>
+#include <kernelcall.h>
 #include "kirk_engine.h"
 
 #define LOG dbglogger_log
@@ -559,14 +562,65 @@ static void EncryptSavedata(uint8_t* buf, int size, uint8_t *key, uint8_t *hash,
 }
 
 static void GenerateSavedataHash(uint8_t *data, int size, int mode, uint8_t *hash) {
-	pspChnnlsvContext1 ctx1;
-	memset(&ctx1,0,sizeof(ctx1));
+	static int module_loaded = 0;
+	while(module_loaded == 0){
+		char *chnnlsv_path = "flash0:/kd/chnnlsv.prx";
+		LOG("loading %s", chnnlsv_path);
+		SceUID mod = pspSdkLoadStartModule(chnnlsv_path, PSP_MEMORY_PARTITION_KERNEL);
+		if(mod < 0){
+			LOG("%s load failed with error 0x%08X", chnnlsv_path, mod);
+			module_loaded = -1;
+			break;
+		}
+		pspSdkFixupImports(mod);
 
-	// Generate a new hash using a key.
-	sceChnnlsv_E7833020(&ctx1, mode);
-	sceChnnlsv_F21A1FCA(&ctx1, data, size);
-	if(sceChnnlsv_C4C494F8(&ctx1, hash, NULL)<0)
-		memset(hash,1,0x10);
+		char path_buf[500] = {0};
+		if(getcwd(path_buf, sizeof(path_buf)) == NULL){
+			LOG("current directory path is longer than %u, how did that happen..?", sizeof(path_buf));
+			module_loaded = -1;
+			break;
+		}
+		strncat(path_buf, "/kernelcall.prx", sizeof(path_buf));
+		if(path_buf[sizeof(path_buf) - 1] != '\0'){
+			LOG("kernelcall bridge prx path is longer than %u, how did that happen..?", sizeof(path_buf));
+			module_loaded = -1;
+			break;
+		}
+
+		LOG("loading %s", path_buf);
+		mod = pspSdkLoadStartModule(path_buf, PSP_MEMORY_PARTITION_KERNEL);
+		if(mod < 0){
+			LOG("%s load failed with error 0x%08X", path_buf, mod);
+			module_loaded = -1;
+			break;
+		}
+		pspSdkFixupImports(mod);
+
+		module_loaded = 1;
+	}
+
+	if(module_loaded < 0){
+		LOG("generating savedata hash using hle implementation, some games like Gran Turismo will complain about savedata from another device");
+		_SD_Ctx1 ctx1;
+		memset(&ctx1,0,sizeof(ctx1));
+
+		// Generate a new hash using a key.
+		hleSdSetIndex(&ctx1, mode);
+		hleSdRemoveValue(&ctx1, data, size);
+		if(hleSdGetLastIndex(&ctx1, hash, NULL)<0)
+			memset(hash,1,0x10);
+	}else{
+		LOG("generating savedata hash using chnnlsv.prx");
+		pspChnnlsvContext1 ctx1;
+		memset(&ctx1,0,sizeof(ctx1));
+
+		// Generate a new hash using a key.
+		sceChnnlsv_E7833020_(&ctx1, mode);
+		sceChnnlsv_F21A1FCA_(&ctx1, data, size);
+		if(sceChnnlsv_C4C494F8_(&ctx1, hash, NULL)<0)
+			memset(hash,1,0x10);
+	}
+
 }
 
 static void UpdateSavedataHashes(uint8_t* savedataParams, uint8_t* data, int size) {

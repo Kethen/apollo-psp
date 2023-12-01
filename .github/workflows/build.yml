@@ -45,9 +45,22 @@ jobs:
       run: |
         make -f Makefile.psp install
 
+    - name: Build kernelcall.prx
+      working-directory: kernelcall
+      run: |
+        make release
+
+    - name: Build and install kernelcall stub library
+      working-directory: kernelcall_stub
+      run: |
+        cp ../kernelcall/kernelcall.S ./
+        make
+        cp libkernelcall.a ../pspdev/psp/sdk/lib/
+        cp ../kernelcall/kernelcall.h ../pspdev/psp/sdk/include/
+
     - name: Build Apollo App Package
       run: |
-        psp-cmake . -DCMAKE_BUILD_TYPE=Release
+        psp-cmake . -DCMAKE_BUILD_TYPE=Release -DAPOLLO_ENABLE_LOGGING=ON
         make
         make createzip
 
