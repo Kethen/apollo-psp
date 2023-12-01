@@ -53,7 +53,7 @@ jobs:
 
     - name: Build Apollo App Package
       run: |
-        psp-cmake . -DCMAKE_BUILD_TYPE=Release
+        psp-cmake . -DAPOLLO_ENABLE_LOGGING=ON
         make
         make createzip
 
