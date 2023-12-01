@@ -102,7 +102,7 @@ target_link_libraries(${PROJECT_NAME}
   xmp
   bz2
   z
-  pspchnnlsv
+  chnnlsv_stub
 )
 
 create_pbp_file(
