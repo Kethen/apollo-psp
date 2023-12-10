@@ -1,5 +1,5 @@
 release: all
-	psp-build-exports -s -v exports.exp
+	psp-build-exports -s -k -v exports.exp
 
 TARGET = kernelcall
 OBJS = kernelcall.o
