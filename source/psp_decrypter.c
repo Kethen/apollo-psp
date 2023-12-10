@@ -20,11 +20,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <sys/stat.h>
 #include <apollo.h>
 #include <dbglogger.h>
 #include <pspchnnlsv.h>
-#include <pspsdk.h>
+#include <psputility_savedata.h>
 #include "kirk_engine.h"
 
 #define LOG dbglogger_log
@@ -560,14 +561,13 @@ static void EncryptSavedata(uint8_t* buf, int size, uint8_t *key, uint8_t *hash,
 }
 
 static void GenerateSavedataHash(uint8_t *data, int size, int mode, uint8_t *hash) {
-	static SceUID mod = 0;
-	if(mod == 0){
-		mod = pspSdkLoadStartModule("flash0:/kd/chnnlsv.prx", PSP_MEMORY_PARTITION_KERNEL);
-		if(mod < 0){
-			LOG("flash0:/kd/chnnlsv.prx load failed with error 0x%08X", mod);
-		}
+	int module_loaded = 0;
+	while(module_loaded == 0){
+		
+		module_loaded = 1;
 	}
-	if(mod < 0){
+
+	if(module_loaded < 0){
 		LOG("generating savedata hash using hle implementation, some games like Gran Turismo will complain about savedata from another device");
 		_SD_Ctx1 ctx1;
 		memset(&ctx1,0,sizeof(ctx1));
@@ -583,12 +583,10 @@ static void GenerateSavedataHash(uint8_t *data, int size, int mode, uint8_t *has
 		memset(&ctx1,0,sizeof(ctx1));
 
 		// Generate a new hash using a key.
-		int k1 = pspSdkSetK1(0);
-		sceChnnlsv_E7833020(&ctx1, mode);
-		sceChnnlsv_F21A1FCA(&ctx1, data, size);
-		if(sceChnnlsv_C4C494F8(&ctx1, hash, NULL)<0)
+		sceChnnlsv_E7833020_(&ctx1, mode);
+		sceChnnlsv_F21A1FCA_(&ctx1, data, size);
+		if(sceChnnlsv_C4C494F8_(&ctx1, hash, NULL)<0)
 			memset(hash,1,0x10);
-		pspSdkSetK1(k1);
 	}
 
 }
